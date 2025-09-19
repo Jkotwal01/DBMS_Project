@@ -1,0 +1,18 @@
+# Web Framework
+fastapi==0.115.0
+uvicorn==0.30.6
+
+# Database ORM + Driver
+SQLAlchemy==2.0.34
+pymysql==1.1.1
+
+# Authentication & Security
+python-dotenv==1.0.1
+PyJWT==2.9.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.9
+
+# Optional (but useful)
+alembic==1.13.2   # for DB migrations
+email-validator==2.2.0
+
