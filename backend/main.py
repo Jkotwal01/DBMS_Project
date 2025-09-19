@@ -184,3 +184,33 @@ def complete_faculty_profile(fac_in: schemas.FacultyCreate, current_user: models
         raise HTTPException(status_code=400, detail="Profile already exists")
     faculty = crud.create_faculty_profile(db, current_user.user_id, fac_in)
     return faculty
+
+@app.put("/student/profile", response_model=schemas.UserOut)
+def update_student_profile(
+    profile_update: schemas.StudentCreate,
+    current_user: models.User = Depends(require_role("Student")),
+    db: Session = Depends(get_db)
+):
+    student = db.query(models.Student).filter(models.Student.student_id == current_user.user_id).first()
+    if not student:
+        student = crud.create_student_profile(db, current_user.user_id, profile_update)
+    else:
+        for key, value in profile_update.dict(exclude_unset=True).items():
+            setattr(student, key, value)
+        db.commit()
+    return current_user
+
+@app.put("/faculty/profile", response_model=schemas.UserOut)
+def update_faculty_profile(
+    profile_update: schemas.FacultyCreate,
+    current_user: models.User = Depends(require_role("Faculty")),
+    db: Session = Depends(get_db)
+):
+    faculty = db.query(models.Faculty).filter(models.Faculty.faculty_id == current_user.user_id).first()
+    if not faculty:
+        faculty = crud.create_faculty_profile(db, current_user.user_id, profile_update)
+    else:
+        for key, value in profile_update.dict(exclude_unset=True).items():
+            setattr(faculty, key, value)
+        db.commit()
+    return current_user
