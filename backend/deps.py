@@ -10,6 +10,17 @@ import typing
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
+# ---- RBAC Utilities ----
+class PermissionError(HTTPException):
+    def __init__(self, detail: str = "Forbidden"):
+        super().__init__(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
+
+
+def assert_user_has_role(current_user: "User", allowed_roles: list[str]):
+    if current_user.role.value not in allowed_roles:
+        raise PermissionError(f"Operation allowed only for roles: {', '.join(allowed_roles)}")
+    return True
+
 def get_db():
     db = SessionLocal()
     try:
@@ -35,7 +46,13 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 def require_role(role: str):
     def role_checker(current_user: User = Depends(get_current_user)):
-        if current_user.role.value != role:
-            raise HTTPException(status_code=403, detail=f"Operation allowed only for {role}")
+        assert_user_has_role(current_user, [role])
+        return current_user
+    return role_checker
+
+
+def require_any_role(*roles: str):
+    def role_checker(current_user: User = Depends(get_current_user)):
+        assert_user_has_role(current_user, list(roles))
         return current_user
     return role_checker

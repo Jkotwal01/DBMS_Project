@@ -2,10 +2,12 @@
 import jwt   # <-- comes from PyJWT
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
+import os
 
-SECRET_KEY = "mysecret"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+# Prefer environment-based secret configuration
+SECRET_KEY = os.getenv("JWT_SECRET", "change-me-in-env")
+ALGORITHM = os.getenv("JWT_ALG", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

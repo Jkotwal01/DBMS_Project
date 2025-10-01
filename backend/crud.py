@@ -74,7 +74,9 @@ def add_timetable_entry(db: Session, tt_in: schemas.TimetableCreate):
         subject_id=tt_in.subject_id,
         student_id=tt_in.student_id,
         day=tt_in.day,
-        time_slot=tt_in.time_slot
+        time_slot=tt_in.time_slot,
+        room=tt_in.room,
+        class_name=tt_in.class_name,
     )
     db.add(entry)
     db.commit()
@@ -90,6 +92,7 @@ def mark_attendance(db: Session, att_in: schemas.AttendanceCreate):
     ).first()
     if existing:
         existing.status = att_in.status
+        existing.marked_by = att_in.marked_by
         db.commit()
         db.refresh(existing)
         return existing
@@ -97,7 +100,8 @@ def mark_attendance(db: Session, att_in: schemas.AttendanceCreate):
         student_id=att_in.student_id,
         subject_id=att_in.subject_id,
         date=att_in.date,
-        status=att_in.status
+        status=att_in.status,
+        marked_by=att_in.marked_by,
     )
     db.add(att)
     db.commit()
@@ -109,7 +113,8 @@ def create_notification(db: Session, notif_in: schemas.NotificationCreate, facul
         title=notif_in.title,
         description=notif_in.description,
         created_by=faculty_id,
-        visible_to=notif_in.visible_to
+        visible_to=notif_in.visible_to,
+        receiver_role=notif_in.receiver_role,
     )
     db.add(notif)
     db.commit()
