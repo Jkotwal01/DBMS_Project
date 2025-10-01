@@ -81,7 +81,7 @@ def add_timetable_entry(db: Session, tt_in: schemas.TimetableCreate):
     db.refresh(entry)
     return entry
 
-def mark_attendance(db: Session, att_in: schemas.AttendanceCreate):
+def mark_attendance(db: Session, att_in: schemas.AttendanceCreate, marked_by: int | None = None):
     # try to update existing or insert new
     existing = db.query(models.Attendance).filter(
         models.Attendance.student_id == att_in.student_id,
@@ -90,6 +90,8 @@ def mark_attendance(db: Session, att_in: schemas.AttendanceCreate):
     ).first()
     if existing:
         existing.status = att_in.status
+        if marked_by is not None:
+            existing.marked_by = marked_by
         db.commit()
         db.refresh(existing)
         return existing
@@ -97,7 +99,8 @@ def mark_attendance(db: Session, att_in: schemas.AttendanceCreate):
         student_id=att_in.student_id,
         subject_id=att_in.subject_id,
         date=att_in.date,
-        status=att_in.status
+        status=att_in.status,
+        marked_by=marked_by
     )
     db.add(att)
     db.commit()

@@ -73,6 +73,7 @@ class Attendance(Base):
     subject_id = Column(Integer, ForeignKey("subjects.subject_id", ondelete="CASCADE"))
     date = Column(Date)
     status = Column(String(10))  # 'Present' or 'Absent'
+    marked_by = Column(Integer, ForeignKey("faculty.faculty_id", ondelete="SET NULL"), nullable=True)
 
     __table_args__ = (UniqueConstraint('student_id', 'subject_id', 'date', name='u_student_subject_date'),)
 
