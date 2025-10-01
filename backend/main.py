@@ -1,6 +1,6 @@
 # main.py
 import os
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File
 from fastapi.security import OAuth2PasswordRequestForm
 from database import engine, SessionLocal, Base
 from sqlalchemy.orm import Session
@@ -9,6 +9,8 @@ from deps import get_db, get_current_user, require_role
 from auth import create_access_token
 from datetime import timedelta
 from dotenv import load_dotenv
+import csv
+from io import StringIO
 from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
@@ -91,7 +93,7 @@ def student_timetable(current_user: models.User = Depends(require_role("Student"
 def student_notifications(current_user: models.User = Depends(require_role("Student")), db: Session = Depends(get_db)):
     # students see notifications visible_to=Student or All
     notifs = db.query(models.Notification).filter(
-        (models.Notification.visible_to == "Student") | (models.Notification.visible_to == "All")
+        (models.Notification.receiver_role == "Student") | (models.Notification.visible_to == "Student") | (models.Notification.visible_to == "All")
     ).order_by(models.Notification.created_at.desc()).all()
     return notifs
 
@@ -131,7 +133,7 @@ def faculty_mark_attendance(att_in: schemas.AttendanceCreate, current_user: mode
         raise HTTPException(status_code=404, detail="Subject not found")
     if subj.faculty_id != current_user.user_id:
         raise HTTPException(status_code=403, detail="You can only mark attendance for your subjects")
-    rec = crud.mark_attendance(db, att_in)
+    rec = crud.mark_attendance(db, schemas.AttendanceCreate(**att_in.dict(), marked_by=current_user.user_id))
     return rec
 
 @app.delete("/faculty/attendance/{attendance_id}")
@@ -162,6 +164,47 @@ def faculty_notifications(current_user: models.User = Depends(require_role("Facu
         raise HTTPException(status_code=404, detail="Faculty profile missing")
     notifs = db.query(models.Notification).filter(models.Notification.created_by == faculty.faculty_id).order_by(models.Notification.created_at.desc()).all()
     return notifs
+
+# --- Faculty: bulk upload students (CSV) ---
+@app.post("/faculty/students/upload")
+def faculty_upload_students(
+	current_user: models.User = Depends(require_role("Faculty")),
+	db: Session = Depends(get_db),
+	file: UploadFile = File(...),
+):
+    if file.content_type not in ("text/csv", "application/vnd.ms-excel"):
+        raise HTTPException(status_code=400, detail="Only CSV files are supported")
+    content = file.file.read().decode("utf-8")
+    reader = csv.DictReader(StringIO(content))
+    created = 0
+    for row in reader:
+        # Expected columns: name,email,password,roll_no,class_name,year,section
+        user_in = schemas.UserCreate(
+            name=row.get("name", "Student"),
+            email=row["email"],
+            password=row.get("password", "ChangeMe123!"),
+            role="Student",
+            department=None,
+        )
+        try:
+            user = crud.create_user(db, user_in)
+        except Exception:
+            continue
+        try:
+            crud.create_student_profile(
+                db,
+                user.user_id,
+                schemas.StudentCreate(
+                    roll_no=row["roll_no"],
+                    class_name=row.get("class_name"),
+                    year=int(row.get("year")) if row.get("year") else None,
+                    section=row.get("section"),
+                ),
+            )
+            created += 1
+        except Exception:
+            continue
+    return {"created": created}
 
 # -- Admin-like endpoints for subject creation (for demo) --
 @app.post("/subjects", tags=["admin"])
@@ -214,3 +257,49 @@ def update_faculty_profile(
             setattr(faculty, key, value)
         db.commit()
     return current_user
+
+
+# --- Faculty: manage student CRUD ---
+@app.get("/faculty/students")
+def list_students(current_user: models.User = Depends(require_role("Faculty")), db: Session = Depends(get_db)):
+    students = db.query(models.Student).all()
+    return [
+        {
+            "student_id": s.student_id,
+            "roll_no": s.roll_no,
+            "class_name": s.class_name,
+            "year": s.year,
+            "section": s.section,
+            "name": s.user.name if s.user else None,
+            "email": s.user.email if s.user else None,
+        }
+        for s in students
+    ]
+
+
+@app.put("/faculty/students/{student_id}")
+def update_student(student_id: int, payload: schemas.StudentCreate, current_user: models.User = Depends(require_role("Faculty")), db: Session = Depends(get_db)):
+    s = db.query(models.Student).filter(models.Student.student_id == student_id).first()
+    if not s:
+        raise HTTPException(status_code=404, detail="Student not found")
+    for key, value in payload.dict(exclude_unset=True).items():
+        setattr(s, key, value)
+    db.commit()
+    db.refresh(s)
+    return {
+        "student_id": s.student_id,
+        "roll_no": s.roll_no,
+        "class_name": s.class_name,
+        "year": s.year,
+        "section": s.section,
+    }
+
+
+@app.delete("/faculty/students/{student_id}")
+def delete_student(student_id: int, current_user: models.User = Depends(require_role("Faculty")), db: Session = Depends(get_db)):
+    s = db.query(models.Student).filter(models.Student.student_id == student_id).first()
+    if not s:
+        raise HTTPException(status_code=404, detail="Student not found")
+    db.delete(s)
+    db.commit()
+    return {"detail": "deleted"}

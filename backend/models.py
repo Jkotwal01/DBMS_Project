@@ -62,6 +62,8 @@ class Timetable(Base):
     student_id = Column(Integer, ForeignKey("students.student_id", ondelete="CASCADE"))
     day = Column(String(10))  # 'Mon','Tue', etc.
     time_slot = Column(String(30))
+    room = Column(String(50), nullable=True)
+    class_name = Column(String(50), nullable=True)
 
     subject = relationship("Subject", back_populates="timetable_entries")
     student = relationship("Student", back_populates="timetable_entries")
@@ -73,6 +75,7 @@ class Attendance(Base):
     subject_id = Column(Integer, ForeignKey("subjects.subject_id", ondelete="CASCADE"))
     date = Column(Date)
     status = Column(String(10))  # 'Present' or 'Absent'
+    marked_by = Column(Integer, ForeignKey("faculty.faculty_id", ondelete="SET NULL"), nullable=True)
 
     __table_args__ = (UniqueConstraint('student_id', 'subject_id', 'date', name='u_student_subject_date'),)
 
@@ -89,3 +92,4 @@ class Notification(Base):
     created_at = Column(TIMESTAMP, server_default=func.now())
 
     creator = relationship("Faculty", back_populates="notifications")
+    receiver_role = Column(String(20), nullable=True)

@@ -48,17 +48,21 @@ class TimetableCreate(BaseModel):
     student_id: int
     day: str
     time_slot: str
+    room: str | None = None
+    class_name: str | None = None
 
 class AttendanceCreate(BaseModel):
     student_id: int
     subject_id: int
     date: date
     status: str
+    marked_by: int | None = None
 
 class NotificationCreate(BaseModel):
     title: str
     description: str
-    visible_to: str = "Student"  # default to Student
+    visible_to: str = "Student"  # deprecated in favor of receiver_role
+    receiver_role: str | None = "Student"
 
 class NotificationOut(BaseModel):
     notification_id: int
@@ -66,6 +70,7 @@ class NotificationOut(BaseModel):
     description: str
     created_by: int
     visible_to: str
+    receiver_role: str | None
     created_at: datetime
 
     class Config:
