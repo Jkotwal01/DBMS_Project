@@ -1,0 +1,6 @@
+name,email,roll_no,class_name,year,section,department,phone,address,guardian_name,guardian_phone,blood_group,date_of_birth,gender
+John Doe,john.doe@student.erp.edu,CS2024001,B.Tech Computer Science,2,A,Computer Science,+1234567801,Hostel Block C,Mr. Doe,+1234567901,A+,2003-05-15,Male
+Jane Smith,jane.smith@student.erp.edu,CS2024002,B.Tech Computer Science,2,A,Computer Science,+1234567802,Hostel Block D,Mrs. Smith,+1234567902,B+,2003-07-20,Female
+Mike Johnson,mike.johnson@student.erp.edu,CS2024003,B.Tech Computer Science,2,B,Computer Science,+1234567803,Hostel Block E,Mr. Johnson,+1234567903,O+,2003-03-10,Male
+Sarah Wilson,sarah.wilson@student.erp.edu,CS2024004,B.Tech Computer Science,2,B,Computer Science,+1234567804,Hostel Block F,Mrs. Wilson,+1234567904,AB+,2003-09-25,Female
+David Brown,david.brown@student.erp.edu,CS2024005,B.Tech Computer Science,1,A,Computer Science,+1234567805,Hostel Block G,Mr. Brown,+1234567905,A-,2004-01-12,Male
